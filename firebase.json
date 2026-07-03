@@ -1,0 +1,11 @@
+{
+  "firestore": [
+    {
+      "database": "ai-studio-civicconnectindi-c53a418c-26c1-4a27-ab98-34baed69d3f5",
+      "rules": "firestore.rules"
+    }
+  ],
+  "storage": {
+    "rules": "storage.rules"
+  }
+}

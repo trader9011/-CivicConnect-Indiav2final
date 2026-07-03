@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true;
+    }
+
+    function isAddingSelfToList(field) {
+      let oldList = resource.data.get(field, []);
+      let newList = request.resource.data.get(field, []);
+      return newList.removeAll([request.auth.uid]) == oldList.removeAll([request.auth.uid]);
+    }
+
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+    }
+    
+    match /support_requests/{requestId} {
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow read: if isAdmin();
+    }
+    
+    match /admin_logs/{logId} {
+      allow create, read: if isAdmin();
+    }
+    
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow create: if isSignedIn() && (request.auth.uid == request.resource.data.userId || isAdmin());
+      allow update: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
+    
+    match /complaints/{complaintId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      
+      allow update: if isSignedIn() && (
+        (request.auth.uid == resource.data.userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['images', 'videos'])) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['supporters']) && request.resource.data.supporters is list && isAddingSelfToList('supporters')) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes']) && request.resource.data.upvotes is list && isAddingSelfToList('upvotes')) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['downvotes']) && request.resource.data.downvotes is list && isAddingSelfToList('downvotes')) ||
+        isAdmin()
+      );
+      
+      allow delete: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "CivicConnect India",
+  "description": "An independent citizen grievance and public service portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
